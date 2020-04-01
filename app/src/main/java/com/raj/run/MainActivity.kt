@@ -17,13 +17,10 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.fitness.Fitness
 import com.google.android.gms.fitness.FitnessOptions
 import com.google.android.gms.fitness.data.*
-import com.google.android.gms.fitness.request.DataReadRequest
 import com.google.android.gms.fitness.result.DataReadResponse
 import com.google.android.gms.tasks.Task
+import com.raj.run.InsertValueIntoFitApi.InsertStepsFitApi
 import java.text.DateFormat
-import java.text.DateFormat.getDateInstance
-import java.util.*
-import java.util.concurrent.TimeUnit
 
 
 const val TAG = "StepCounter"
@@ -33,6 +30,11 @@ const val TAG = "StepCounter"
  * One of these values is passed to the Fit sign-in, and returned in a successful callback, allowing
  * subsequent execution of the desired action.
  */
+enum class TypeOfData{
+    Steps,Calorie,Heart
+}
+
+
 enum class FitActionRequestCode {
     SUBSCRIBE,
     READ_DATA
@@ -116,7 +118,7 @@ class MainActivity : AppCompatActivity() {
      * @param requestCode The code corresponding to the action to perform.
      */
     private fun performActionForRequestCode(requestCode: FitActionRequestCode) = when (requestCode) {
-        FitActionRequestCode.READ_DATA -> readData()
+        FitActionRequestCode.READ_DATA -> readDataDaily()
         FitActionRequestCode.SUBSCRIBE -> subscribe()
     }
 
@@ -154,7 +156,25 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
+        Fitness.getRecordingClient(this, getGoogleAccount())
+            .subscribe(DataType.TYPE_CALORIES_EXPENDED)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.i(TAG, "Successfully subscribed! TYPE_CALORIES_EXPENDED")
+                } else {
+                    Log.w(TAG, "There was a problem subscribing. TYPE_CALORIES_EXPENDED", task.exception)
+                }
+            }
 
+        Fitness.getRecordingClient(this, getGoogleAccount())
+            .subscribe(DataType.TYPE_HEART_POINTS)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.i(TAG, "Successfully subscribed! TYPE_DISTANCE_CUMULATIVE")
+                } else {
+                    Log.w(TAG, "There was a problem subscribing. TYPE_DISTANCE_CUMULATIVE", task.exception)
+                }
+            }
 
         Fitness.getRecordingClient(
             this,
@@ -171,7 +191,7 @@ class MainActivity : AppCompatActivity() {
      * Reads the current daily step total, computed from midnight of the current day on the device's
      * current timezone.
      */
-    private fun readData() {
+    private fun readDataDaily() {
         Fitness.getHistoryClient(this, getGoogleAccount())
                 .readDailyTotal(DataType.TYPE_STEP_COUNT_DELTA)
                 .addOnSuccessListener { dataSet ->
@@ -184,6 +204,22 @@ class MainActivity : AppCompatActivity() {
                 .addOnFailureListener { e ->
                     Log.w(TAG, "There was a problem getting the step count.", e)
                 }
+
+
+        Fitness.getHistoryClient(this, getGoogleAccount())
+            .readDailyTotal(DataType.TYPE_CALORIES_EXPENDED)
+            .addOnSuccessListener { dataSet ->
+                val total = when {
+                    dataSet.isEmpty -> 0
+                    else -> (dataSet.dataPoints.first().getValue(Field.FIELD_CALORIES).asFloat()).toInt()
+                }
+                Log.i(TAG, "Total CALORIES: $total")
+            }
+            .addOnFailureListener { e ->
+                Log.w(TAG, "There was a problem getting the CALORIES count.", e)
+            }
+
+
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -194,13 +230,26 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         val id = item.itemId
-        if (id == R.id.action_read_data) {
+        if (id == R.id.action_read_data_daily) {
             fitSignIn(FitActionRequestCode.READ_DATA)
             return true
         }
 
-        if (id == R.id.action_read_data_histoy) {
-            insertAndReadData()
+        if (id == R.id.action_read_data_histoy_steps) {
+            (InsertStepsFitApi(this, fitnessOptions).insertData()).continueWith { readHistoryDatateps()}
+            //insertAndReadData()
+            return true
+        }
+
+        if (id == R.id.action_read_data_histoy_calorie) {
+            (InsertStepsFitApi(this, fitnessOptions).insertData()).continueWith { readHistoryDataCalorie()}
+            //insertAndReadData()
+            return true
+        }
+
+        if (id == R.id.action_read_data_histoy_heartPoint) {
+            (InsertStepsFitApi(this, fitnessOptions).insertData()).continueWith { readHistoryHeartPoints()}
+            //insertAndReadData()
             return true
         }
         return super.onOptionsItemSelected(item)
@@ -243,17 +292,11 @@ class MainActivity : AppCompatActivity() {
         requestCode.let {
             if (shouldProvideRationale) {
                 Log.i(TAG, "Displaying permission rationale to provide additional context.")
-//                Snackbar.make(
-//                        findViewById(R.id.main_activity_view),
-//                        R.string.permission_rationale,
-//                        Snackbar.LENGTH_INDEFINITE)
-//                        .setAction(R.string.ok) {
-                            // Request permission
+
                             ActivityCompat.requestPermissions(this,
                                     arrayOf(Manifest.permission.ACTIVITY_RECOGNITION),
                                     requestCode.ordinal)
-//                        }
-//                        .show()
+
             } else {
                 Log.i(TAG, "Requesting permission")
                 // Request permission. It's possible this can be auto answered if device policy
@@ -295,12 +338,6 @@ class MainActivity : AppCompatActivity() {
                 // when permissions are denied. Otherwise, your app could appear unresponsive to
                 // touches or interactions which have required permissions.
 
-//                Snackbar.make(
-//                        findViewById(R.id.main_activity_view),
-//                        R.string.permission_denied_explanation,
-//                        Snackbar.LENGTH_INDEFINITE)
-//                        .setAction(R.string.settings) {
-                            // Build intent that displays the App settings screen.
                             val intent = Intent()
                             intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
                             val uri = Uri.fromParts("package",
@@ -308,38 +345,20 @@ class MainActivity : AppCompatActivity() {
                             intent.data = uri
                             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
                             startActivity(intent)
-//                        }
-//                        .show()
+
             }
         }
     }
 
 
 
-    private fun insertAndReadData() = insertData().continueWith { readHistoryData() }
-
-    /** Creates a {@link DataSet} and inserts it into user's Google Fit history. */
-    private fun insertData(): Task<Void> {
-        // Create a new dataset and insertion request.
-        val dataSet = insertFitnessData()
-
-        // Then, invoke the History API to insert the data.
-        Log.i(TAG, "Inserting the dataset in the History API.")
-        return Fitness.getHistoryClient(this, getGoogleAccount())
-            .insertData(dataSet)
-            .addOnSuccessListener { Log.i(TAG, "Data insert was successful!") }
-            .addOnFailureListener { exception ->
-                Log.e(TAG, "There was a problem inserting the dataset.", exception)
-            }
-    }
-
     /**
      * Asynchronous task to read the history data. When the task succeeds, it will print out the
      * data.
      */
-    private fun readHistoryData(): Task<DataReadResponse> {
+    private fun readHistoryDatateps(): Task<DataReadResponse> {
         // Begin by creating the query.
-        val readRequest = queryFitnessData()
+        val readRequest =  GetDataByTime().queryFitnessDataSteps(dateFormat)
 
         // Invoke the History API to fetch the data with the query
         return Fitness.getHistoryClient(this, getGoogleAccount())
@@ -355,78 +374,44 @@ class MainActivity : AppCompatActivity() {
             }
     }
 
-    /**
-     * Creates and returns a {@link DataSet} of step count data for insertion using the History API.
-     */
-    private fun insertFitnessData(): DataSet {
-        Log.i(TAG, "Creating a new data insert request.")
 
-        // [START build_insert_data_request]
-        // Set a start and end time for our data, using a start time of 1 hour before this moment.
-        val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-        val now = Date()
-        calendar.time = now
-        val endTime = calendar.timeInMillis
-        calendar.add(Calendar.HOUR_OF_DAY, -1)
-        val startTime = calendar.timeInMillis
+    private fun readHistoryHeartPoints(): Task<DataReadResponse> {
+        // Begin by creating the query.
+        val readRequest = GetDataByTime().queryFitnessDataHeartPoints(dateFormat)
 
-        // Create a data source
-        val dataSource = DataSource.Builder()
-            .setAppPackageName(this)
-            .setDataType(DataType.TYPE_STEP_COUNT_DELTA)
-            .setStreamName("$TAG - step count")
-            .setType(DataSource.TYPE_RAW)
-            .build()
-
-        // Create a data set
-        val stepCountDelta = 950
-        return DataSet.builder(dataSource)
-            .add(
-                DataPoint.builder(dataSource)
-                    .setField(Field.FIELD_STEPS, stepCountDelta)
-                    .setTimeInterval(startTime, endTime, TimeUnit.MILLISECONDS)
-                    .build()
-            ).build()
-        // [END build_insert_data_request]
+        // Invoke the History API to fetch the data with the query
+        return Fitness.getHistoryClient(this, getGoogleAccount())
+            .readData(readRequest)
+            .addOnSuccessListener { dataReadResponse ->
+                // For the sake of the sample, we'll print the data so we can see what we just
+                // added. In general, logging fitness information should be avoided for privacy
+                // reasons.
+                printData(dataReadResponse)
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "There was a problem reading the data.", e)
+            }
     }
 
-    /** Returns a [DataReadRequest] for all step count changes in the past week.  */
-    private fun queryFitnessData(): DataReadRequest {
-        // [START build_read_data_request]
-        // Setting a start and end date using a range of 1 week before this moment.
-        val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-        val now = Date()
-        calendar.time = now
-        val endTime = calendar.timeInMillis
-        calendar.add(Calendar.WEEK_OF_YEAR, -1)
-        val startTime = calendar.timeInMillis
 
-        Log.i(TAG, "Range Start: ${dateFormat.format(startTime)}")
-        Log.i(TAG, "Range End: ${dateFormat.format(endTime)}")
+    private fun readHistoryDataCalorie(): Task<DataReadResponse> {
+        // Begin by creating the query.
+        val readRequest = GetDataByTime().queryFitnessDataCalorie(dateFormat)
 
-        return DataReadRequest.Builder()
-            // The data request can specify multiple data types to return, effectively
-            // combining multiple data queries into one call.
-            // In this example, it's very unlikely that the request is for several hundred
-            // datapoints each consisting of a few steps and a timestamp.  The more likely
-            // scenario is wanting to see how many steps were walked per day, for 7 days.
-            .aggregate(DataType.TYPE_STEP_COUNT_DELTA, DataType.AGGREGATE_STEP_COUNT_DELTA)
-            // Analogous to a "Group By" in SQL, defines how data should be aggregated.
-            // bucketByTime allows for a time span, whereas bucketBySession would allow
-            // bucketing by "sessions", which would need to be defined in code.
-            .bucketByTime(1, TimeUnit.DAYS)
-            .setTimeRange(startTime, endTime, TimeUnit.MILLISECONDS)
-            .build()
+        // Invoke the History API to fetch the data with the query
+        return Fitness.getHistoryClient(this, getGoogleAccount())
+            .readData(readRequest)
+            .addOnSuccessListener { dataReadResponse ->
+                // For the sake of the sample, we'll print the data so we can see what we just
+                // added. In general, logging fitness information should be avoided for privacy
+                // reasons.
+                printData(dataReadResponse)
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "There was a problem reading the data.", e)
+            }
     }
 
-    /**
-     * Logs a record of the query result. It's possible to get more constrained data sets by
-     * specifying a data source or data type, but for demonstrative purposes here's how one would
-     * dump all the data. In this sample, logging also prints to the device screen, so we can see
-     * what the query returns, but your app should not log fitness information as a privacy
-     * consideration. A better option would be to dump the data you receive to a local data
-     * directory to avoid exposing it to other applications.
-     */
     private fun printData(dataReadResult: DataReadResponse) {
         // [START parse_read_data_result]
         // If the DataReadRequest object specified aggregated data, dataReadResult will be returned

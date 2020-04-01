@@ -22,13 +22,23 @@ limitations under the License.
         android:orderInCategory="100"
         app:showAsAction="never" />
 
-    <item android:id="@+id/action_read_data"
+    <item android:id="@+id/action_read_data_daily"
         android:title="@string/read_step_data"
         android:orderInCategory="100"
         app:showAsAction="never" />
 
-    <item android:id="@+id/action_read_data_histoy"
-        android:title="@string/read_step_data_history"
+    <item android:id="@+id/action_read_data_histoy_steps"
+        android:title="@string/read_step_data_history_steps"
+        android:orderInCategory="100"
+        app:showAsAction="never" />
+
+    <item android:id="@+id/action_read_data_histoy_calorie"
+        android:title="@string/read_step_data_history_calorie"
+        android:orderInCategory="100"
+        app:showAsAction="never" />
+
+    <item android:id="@+id/action_read_data_histoy_heartPoint"
+        android:title="@string/read_step_data_history_heartPoint"
         android:orderInCategory="100"
         app:showAsAction="never" />
 
