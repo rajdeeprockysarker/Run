@@ -49,6 +49,8 @@ class MainActivity : AppCompatActivity() {
     private val fitnessOptions = FitnessOptions.builder()
             .addDataType(DataType.TYPE_STEP_COUNT_CUMULATIVE)
             .addDataType(DataType.TYPE_STEP_COUNT_DELTA)
+            .addDataType(DataType.TYPE_DISTANCE_CUMULATIVE)
+            .addDataType(DataType.TYPE_STEP_COUNT_DELTA)
             .build()
 
     private val runningQOrLater =
@@ -61,6 +63,11 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         // This method sets up our custom logger, which will print all log messages to the device
         // screen, as well as to adb logcat.
+
+        val permissions = arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION,
+            android.Manifest.permission.ACCESS_COARSE_LOCATION)
+        ActivityCompat.requestPermissions(this, permissions,0)
+
         initializeLogging()
 
         checkPermissionsAndRun(FitActionRequestCode.SUBSCRIBE)
@@ -170,6 +177,16 @@ class MainActivity : AppCompatActivity() {
             .subscribe(DataType.TYPE_HEART_POINTS)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
+                    Log.i(TAG, "Successfully subscribed! TYPE_HEART_CUMULATIVE")
+                } else {
+                    Log.w(TAG, "There was a problem subscribing. TYPE_HEART_CUMULATIVE", task.exception)
+                }
+            }
+
+        Fitness.getRecordingClient(this, getGoogleAccount())
+            .subscribe(DataType.TYPE_DISTANCE_CUMULATIVE)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
                     Log.i(TAG, "Successfully subscribed! TYPE_DISTANCE_CUMULATIVE")
                 } else {
                     Log.w(TAG, "There was a problem subscribing. TYPE_DISTANCE_CUMULATIVE", task.exception)
@@ -199,6 +216,7 @@ class MainActivity : AppCompatActivity() {
                         dataSet.isEmpty -> 0
                         else -> dataSet.dataPoints.first().getValue(Field.FIELD_STEPS).asInt()
                     }
+                    Log.i(TAG, " ------------------ ")
                     Log.i(TAG, "Total steps: $total")
                 }
                 .addOnFailureListener { e ->
@@ -231,6 +249,21 @@ class MainActivity : AppCompatActivity() {
             }
             .addOnFailureListener { e ->
                 Log.w(TAG, "There was a problem getting the MOVE MINUTES count.", e)
+            }
+
+
+
+        Fitness.getHistoryClient(this, getGoogleAccount())
+            .readDailyTotal(DataType.TYPE_DISTANCE_DELTA)
+            .addOnSuccessListener { dataSet ->
+                val total = when {
+                    dataSet.isEmpty -> 0
+                    else ->  dataSet.dataPoints.first().getValue(Field.FIELD_DISTANCE).asFloat()
+                }
+                Log.i(TAG, "Total DISTANCE: $total")
+            }
+            .addOnFailureListener { e ->
+                Log.w(TAG, "There was a problem getting the DISTANCE.", e)
             }
 
 
