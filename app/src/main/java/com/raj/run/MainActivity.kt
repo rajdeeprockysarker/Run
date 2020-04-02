@@ -220,6 +220,20 @@ class MainActivity : AppCompatActivity() {
             }
 
 
+        Fitness.getHistoryClient(this, getGoogleAccount())
+            .readDailyTotal(DataType.TYPE_MOVE_MINUTES)
+            .addOnSuccessListener { dataSet ->
+                val total = when {
+                    dataSet.isEmpty -> 0
+                    else ->  dataSet.dataPoints.first().getValue(Field.FIELD_DURATION).asInt()
+                }
+                Log.i(TAG, "Total MOVE MINUTES: $total")
+            }
+            .addOnFailureListener { e ->
+                Log.w(TAG, "There was a problem getting the MOVE MINUTES count.", e)
+            }
+
+
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
