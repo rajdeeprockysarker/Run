@@ -252,6 +252,18 @@ class MainActivity : AppCompatActivity() {
             //insertAndReadData()
             return true
         }
+
+
+        if (id == R.id.action_settings) {
+            GoogleSignIn.requestPermissions(
+                this,
+                FitActionRequestCode.SUBSCRIBE.ordinal,
+                getGoogleAccount(), fitnessOptions)
+            //insertAndReadData()
+            return true
+        }
+
+
         return super.onOptionsItemSelected(item)
     }
 
