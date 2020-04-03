@@ -50,7 +50,10 @@ class MainActivity : AppCompatActivity() {
             .addDataType(DataType.TYPE_STEP_COUNT_CUMULATIVE)
             .addDataType(DataType.TYPE_STEP_COUNT_DELTA)
             .addDataType(DataType.TYPE_DISTANCE_CUMULATIVE)
-            .addDataType(DataType.TYPE_STEP_COUNT_DELTA)
+            .addDataType(DataType.TYPE_HEIGHT)
+            .addDataType(DataType.TYPE_WEIGHT)
+
+
             .build()
 
     private val runningQOrLater =
