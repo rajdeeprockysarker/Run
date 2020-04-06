@@ -44,7 +44,7 @@ limitations under the License.
         app:showAsAction="never" />
 
     <item android:id="@+id/action_test"
-        android:title="TEST"
+        android:title="Insert Weight"
         android:orderInCategory="100"
         app:showAsAction="never" />
 
