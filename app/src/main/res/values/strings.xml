@@ -7,7 +7,8 @@
     <string name="permission_rationale">Location data is used as part of the Google Fit API</string>
     <string name="permission_denied_explanation">Permission was denied, but is needed for core
         functionality.</string>
-    <string name="read_step_data">Read step data</string>
+    <string name="action_autho">Autho</string>
+    <string name="read_step_data">Read Data Today</string>
     <string name="read_step_data_history_steps">Read Steps data History</string>
     <string name="read_step_data_history_calorie">Read Calorie data History</string>
     <string name="read_step_data_history_heartPoint">Read HeartPoint data History</string>

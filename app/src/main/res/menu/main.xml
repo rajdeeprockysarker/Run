@@ -17,8 +17,9 @@ limitations under the License.
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".MainActivity" >
-    <item android:id="@+id/action_settings"
-        android:title="@string/action_settings"
+
+    <item android:id="@+id/action_autho"
+        android:title="@string/action_autho"
         android:orderInCategory="100"
         app:showAsAction="never" />
 
@@ -39,6 +40,11 @@ limitations under the License.
 
     <item android:id="@+id/action_read_data_histoy_heartPoint"
         android:title="@string/read_step_data_history_heartPoint"
+        android:orderInCategory="100"
+        app:showAsAction="never" />
+
+    <item android:id="@+id/action_test"
+        android:title="TEST"
         android:orderInCategory="100"
         app:showAsAction="never" />
 

@@ -17,10 +17,13 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.fitness.Fitness
 import com.google.android.gms.fitness.FitnessOptions
 import com.google.android.gms.fitness.data.*
+import com.google.android.gms.fitness.request.DataReadRequest
 import com.google.android.gms.fitness.result.DataReadResponse
 import com.google.android.gms.tasks.Task
 import com.raj.run.InsertValueIntoFitApi.InsertStepsFitApi
 import java.text.DateFormat
+import java.text.SimpleDateFormat
+import java.util.*
 
 
 const val TAG = "StepCounter"
@@ -47,11 +50,12 @@ enum class FitActionRequestCode {
  */
 class MainActivity : AppCompatActivity() {
     private val fitnessOptions = FitnessOptions.builder()
-            .addDataType(DataType.TYPE_STEP_COUNT_CUMULATIVE)
-            .addDataType(DataType.TYPE_STEP_COUNT_DELTA)
-            .addDataType(DataType.TYPE_DISTANCE_CUMULATIVE)
-            .addDataType(DataType.TYPE_HEIGHT)
-            .addDataType(DataType.TYPE_WEIGHT)
+            .addDataType(DataType.TYPE_STEP_COUNT_CUMULATIVE, FitnessOptions.ACCESS_WRITE)
+            .addDataType(DataType.TYPE_STEP_COUNT_DELTA, FitnessOptions.ACCESS_WRITE)
+            .addDataType(DataType.TYPE_DISTANCE_CUMULATIVE, FitnessOptions.ACCESS_WRITE)
+            .addDataType(DataType.TYPE_HEIGHT, FitnessOptions.ACCESS_WRITE)
+            .addDataType(DataType.TYPE_WEIGHT, FitnessOptions.ACCESS_WRITE)
+
 
 
             .build()
@@ -60,6 +64,7 @@ class MainActivity : AppCompatActivity() {
             android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q
 
     private val dateFormat = DateFormat.getDateInstance()
+    var steps=0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -196,6 +201,26 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
+        Fitness.getRecordingClient(this, getGoogleAccount())
+            .subscribe(DataType.TYPE_WEIGHT)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.i(TAG, "Successfully subscribed! TYPE_WEIGHT")
+                } else {
+                    Log.w(TAG, "There was a problem subscribing. TYPE_WEIGHT", task.exception)
+                }
+            }
+
+        Fitness.getRecordingClient(this, getGoogleAccount())
+            .subscribe(DataType.TYPE_HEIGHT)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.i(TAG, "Successfully subscribed! TYPE_HEIGHT")
+                } else {
+                    Log.w(TAG, "There was a problem subscribing. TYPE_HEIGHT", task.exception)
+                }
+            }
+
         Fitness.getRecordingClient(
             this,
             GoogleSignIn.getLastSignedInAccount(this)!!
@@ -217,7 +242,10 @@ class MainActivity : AppCompatActivity() {
                 .addOnSuccessListener { dataSet ->
                     val total = when {
                         dataSet.isEmpty -> 0
-                        else -> dataSet.dataPoints.first().getValue(Field.FIELD_STEPS).asInt()
+                        else ->{
+                            steps=dataSet.dataPoints.first().getValue(Field.FIELD_STEPS).asInt()
+                            dataSet.dataPoints.first().getValue(Field.FIELD_STEPS).asInt()
+                        }
                     }
                     Log.i(TAG, " ------------------ ")
                     Log.i(TAG, "Total steps: $total")
@@ -225,7 +253,6 @@ class MainActivity : AppCompatActivity() {
                 .addOnFailureListener { e ->
                     Log.w(TAG, "There was a problem getting the step count.", e)
                 }
-
 
         Fitness.getHistoryClient(this, getGoogleAccount())
             .readDailyTotal(DataType.TYPE_CALORIES_EXPENDED)
@@ -269,7 +296,6 @@ class MainActivity : AppCompatActivity() {
                 Log.w(TAG, "There was a problem getting the DISTANCE.", e)
             }
 
-
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -286,30 +312,37 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (id == R.id.action_read_data_histoy_steps) {
-            (InsertStepsFitApi(this, fitnessOptions).insertData()).continueWith { readHistoryDatateps()}
+            (InsertStepsFitApi(this, fitnessOptions).insertData(steps)).continueWith { readHistoryDatateps()}
             //insertAndReadData()
             return true
         }
 
         if (id == R.id.action_read_data_histoy_calorie) {
-            (InsertStepsFitApi(this, fitnessOptions).insertData()).continueWith { readHistoryDataCalorie()}
+            (InsertStepsFitApi(this, fitnessOptions).insertData(steps)).continueWith { readHistoryDataCalorie()}
             //insertAndReadData()
             return true
         }
 
         if (id == R.id.action_read_data_histoy_heartPoint) {
-            (InsertStepsFitApi(this, fitnessOptions).insertData()).continueWith { readHistoryHeartPoints()}
+            (InsertStepsFitApi(this, fitnessOptions).insertData(steps)).continueWith { readHistoryHeartPoints()}
             //insertAndReadData()
             return true
         }
 
 
-        if (id == R.id.action_settings) {
+        if (id == R.id.action_autho) {
             GoogleSignIn.requestPermissions(
                 this,
                 FitActionRequestCode.SUBSCRIBE.ordinal,
                 getGoogleAccount(), fitnessOptions)
             //insertAndReadData()
+            return true
+        }
+
+        if (id == R.id.action_test) {
+           (InsertStepsFitApi(this, fitnessOptions).insertWight()).continueWith{ readHistoryWight() }
+            //insertAndReadData()
+           // readHistoryDatateps()
             return true
         }
 
@@ -440,6 +473,25 @@ class MainActivity : AppCompatActivity() {
     private fun readHistoryHeartPoints(): Task<DataReadResponse> {
         // Begin by creating the query.
         val readRequest = GetDataByTime().queryFitnessDataHeartPoints(dateFormat)
+
+        // Invoke the History API to fetch the data with the query
+        return Fitness.getHistoryClient(this, getGoogleAccount())
+            .readData(readRequest)
+            .addOnSuccessListener { dataReadResponse ->
+                // For the sake of the sample, we'll print the data so we can see what we just
+                // added. In general, logging fitness information should be avoided for privacy
+                // reasons.
+                printData(dataReadResponse)
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "There was a problem reading the data.", e)
+            }
+    }
+
+
+    private fun readHistoryWight(): Task<DataReadResponse> {
+        // Begin by creating the query.
+        val readRequest = GetDataByTime().queryFitnessDataWight(dateFormat)
 
         // Invoke the History API to fetch the data with the query
         return Fitness.getHistoryClient(this, getGoogleAccount())
