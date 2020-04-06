@@ -48,4 +48,9 @@ limitations under the License.
         android:orderInCategory="100"
         app:showAsAction="never" />
 
+    <item android:id="@+id/action_last_seven_days_data"
+        android:title="Get Last 7Days Steps"
+        android:orderInCategory="100"
+        app:showAsAction="never" />
+
 </menu>

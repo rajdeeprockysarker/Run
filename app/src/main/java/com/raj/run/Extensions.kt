@@ -24,3 +24,4 @@ fun DataPoint.getStartTimeString(): String = DateFormat.getTimeInstance()
 
 fun DataPoint.getEndTimeString(): String = DateFormat.getTimeInstance()
         .format(this.getEndTime(TimeUnit.MILLISECONDS))
+

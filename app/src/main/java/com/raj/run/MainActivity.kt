@@ -17,13 +17,10 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.fitness.Fitness
 import com.google.android.gms.fitness.FitnessOptions
 import com.google.android.gms.fitness.data.*
-import com.google.android.gms.fitness.request.DataReadRequest
 import com.google.android.gms.fitness.result.DataReadResponse
 import com.google.android.gms.tasks.Task
 import com.raj.run.InsertValueIntoFitApi.InsertStepsFitApi
 import java.text.DateFormat
-import java.text.SimpleDateFormat
-import java.util.*
 
 
 const val TAG = "StepCounter"
@@ -346,6 +343,19 @@ class MainActivity : AppCompatActivity() {
             return true
         }
 
+        if (id == R.id.action_last_seven_days_data) {
+           // (InsertStepsFitApi(this, fitnessOptions).insertWight()).continueWith{ readHistoryWight() }
+            //insertAndReadData()
+            // readHistoryDatateps()
+            var daysTimeInMiliSecond= GetDateDetailsStartEndTime().ListOfDays(7)
+
+            for(objectdaysTimeInMiliSecond in daysTimeInMiliSecond){
+                getSevenDaysHistoryDatateps(objectdaysTimeInMiliSecond)
+            }
+
+            return true
+        }
+
 
         return super.onOptionsItemSelected(item)
     }
@@ -558,5 +568,51 @@ class MainActivity : AppCompatActivity() {
     }
     // [END parse_dataset]
 
+
+    private fun getSevenDaysHistoryDatateps(objectdaysTimeInMiliSecond: GetDateDetailsStartEndTime.DateStartEnd): Task<DataReadResponse> {
+        // Begin by creating the query.
+        val readRequest =  GetDataByTime().queryFitnessDataStepsSevenDaysHistory(dateFormat,objectdaysTimeInMiliSecond.mStartTimeInMili,objectdaysTimeInMiliSecond.mEndTimeInMili)
+
+        // Invoke the History API to fetch the data with the query
+        return Fitness.getHistoryClient(this, getGoogleAccount())
+            .readData(readRequest)
+            .addOnSuccessListener { dataReadResponse ->
+                // For the sake of the sample, we'll print the data so we can see what we just
+                // added. In general, logging fitness information should be avoided for privacy
+                // reasons.
+                Log.i(objectdaysTimeInMiliSecond.mStartDate,"---"+objectdaysTimeInMiliSecond.mStartDate+"---")
+                if (dataReadResponse.buckets.isNotEmpty()) {
+                    Log.i(TAG, "Number of returned buckets of DataSets is: " + dataReadResponse.buckets.size)
+                    for (bucket in dataReadResponse.buckets) {
+                        bucket.dataSets.forEach { dumpDataSet(it) }
+                    }
+                } else if (dataReadResponse.dataSets.isNotEmpty()) {
+                    Log.i(TAG, "Number of returned DataSets is: " + dataReadResponse.dataSets.size)
+                    dataReadResponse.dataSets.forEach { dumpDataSet(it) }
+                }
+                Log.i("-------------","-------------------")
+
+              //  printDataHistory(dataReadResponse)
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "There was a problem reading the data.", e)
+            }
+    }
+
+    private fun printDataHistory(dataReadResult: DataReadResponse) {
+        // [START parse_read_data_result]
+        // If the DataReadRequest object specified aggregated data, dataReadResult will be returned
+        // as buckets containing DataSets, instead of just DataSets.
+        if (dataReadResult.buckets.isNotEmpty()) {
+            Log.i(TAG, "Number of returned buckets of DataSets is: " + dataReadResult.buckets.size)
+            for (bucket in dataReadResult.buckets) {
+                bucket.dataSets.forEach { dumpDataSet(it) }
+            }
+        } else if (dataReadResult.dataSets.isNotEmpty()) {
+            Log.i(TAG, "Number of returned DataSets is: " + dataReadResult.dataSets.size)
+            dataReadResult.dataSets.forEach { dumpDataSet(it) }
+        }
+        // [END parse_read_data_result]
+    }
 
 }
