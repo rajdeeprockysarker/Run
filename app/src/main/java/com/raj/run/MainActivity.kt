@@ -21,6 +21,7 @@ import com.google.android.gms.fitness.result.DataReadResponse
 import com.google.android.gms.tasks.Task
 import com.raj.run.InsertValueIntoFitApi.InsertStepsFitApi
 import java.text.DateFormat
+import kotlin.math.log
 
 
 const val TAG = "StepCounter"
@@ -52,6 +53,8 @@ class MainActivity : AppCompatActivity() {
             .addDataType(DataType.TYPE_DISTANCE_CUMULATIVE, FitnessOptions.ACCESS_WRITE)
             .addDataType(DataType.TYPE_HEIGHT, FitnessOptions.ACCESS_WRITE)
             .addDataType(DataType.TYPE_WEIGHT, FitnessOptions.ACCESS_WRITE)
+            .addDataType(DataType.TYPE_HYDRATION, FitnessOptions.ACCESS_WRITE)
+            .addDataType(DataType.TYPE_NUTRITION, FitnessOptions.ACCESS_WRITE)
 
 
 
@@ -218,6 +221,25 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
+        Fitness.getRecordingClient(this, getGoogleAccount())
+            .subscribe(DataType.TYPE_HYDRATION)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.i(TAG, "Successfully subscribed! TYPE_HYDRATION")
+                } else {
+                    Log.w(TAG, "There was a problem subscribing. TYPE_HYDRATION", task.exception)
+                }
+            }
+        Fitness.getRecordingClient(this, getGoogleAccount())
+            .subscribe(DataType.TYPE_NUTRITION)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.i(TAG, "Successfully subscribed! TYPE_NUTRITION")
+                } else {
+                    Log.w(TAG, "There was a problem subscribing. TYPE_NUTRITION", task.exception)
+                }
+            }
+
         Fitness.getRecordingClient(
             this,
             GoogleSignIn.getLastSignedInAccount(this)!!
@@ -322,6 +344,15 @@ class MainActivity : AppCompatActivity() {
 
         if (id == R.id.action_read_data_histoy_heartPoint) {
             (InsertStepsFitApi(this, fitnessOptions).insertData(steps)).continueWith { readHistoryHeartPoints()}
+            //insertAndReadData()
+            return true
+        }
+
+        if (id == R.id.action_Hyd) {
+            Log.i("----------------------------","-------------------------");
+            (InsertStepsFitApi(this, fitnessOptions).insertHyd()).continueWith{ readHistoryHyd() }
+
+             // readHistoryHyd()
             //insertAndReadData()
             return true
         }
@@ -517,6 +548,24 @@ class MainActivity : AppCompatActivity() {
             }
     }
 
+    private fun readHistoryHyd(): Task<DataReadResponse> {
+        // Begin by creating the query.
+        val readRequest = GetDataByTime().queryFitnessDataHyd(dateFormat)
+
+        // Invoke the History API to fetch the data with the query
+        return Fitness.getHistoryClient(this, getGoogleAccount())
+            .readData(readRequest)
+            .addOnSuccessListener { dataReadResponse ->
+                // For the sake of the sample, we'll print the data so we can see what we just
+                // added. In general, logging fitness information should be avoided for privacy
+                // reasons.
+                printData(dataReadResponse)
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "There was a problem reading the data.", e)
+            }
+    }
+
 
     private fun readHistoryDataCalorie(): Task<DataReadResponse> {
         // Begin by creating the query.
@@ -549,6 +598,7 @@ class MainActivity : AppCompatActivity() {
             Log.i(TAG, "Number of returned DataSets is: " + dataReadResult.dataSets.size)
             dataReadResult.dataSets.forEach { dumpDataSet(it) }
         }
+        Log.i("----------------------------","-------------------------");
         // [END parse_read_data_result]
     }
 
