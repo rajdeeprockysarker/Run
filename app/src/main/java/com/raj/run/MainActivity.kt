@@ -21,6 +21,7 @@ import com.google.android.gms.fitness.result.DataReadResponse
 import com.google.android.gms.tasks.Task
 import com.raj.run.InsertValueIntoFitApi.InsertStepsFitApi
 import java.text.DateFormat
+import java.text.SimpleDateFormat
 import kotlin.math.log
 
 
@@ -387,6 +388,32 @@ class MainActivity : AppCompatActivity() {
             return true
         }
 
+        if (id == R.id.action_get_time_interval) {
+
+            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+            var mStartDate="2020-05-11"+" 11:40:01"
+            var mEndDate="2020-05-11"+" 12:51:59"
+            var mStartTimeInMili=sdf.parse(mStartDate)
+            var mEndTimeInMili=sdf.parse(mEndDate)
+
+            getStepsTimeInterval(GetDateDetailsStartEndTime.DateStartEnd(mStartDate,mEndDate,
+                mStartTimeInMili.time,mEndTimeInMili.time))
+
+            getCalorieInTimeInterval(GetDateDetailsStartEndTime.DateStartEnd(mStartDate,mEndDate,
+                mStartTimeInMili.time,mEndTimeInMili.time))
+
+            getDistanceimeInterval(GetDateDetailsStartEndTime.DateStartEnd(mStartDate,mEndDate,
+                mStartTimeInMili.time,mEndTimeInMili.time))
+
+            getHeartPointimeInterval(GetDateDetailsStartEndTime.DateStartEnd(mStartDate,mEndDate,
+                mStartTimeInMili.time,mEndTimeInMili.time))
+
+            getMoveMinuteInterval(GetDateDetailsStartEndTime.DateStartEnd(mStartDate,mEndDate,
+                mStartTimeInMili.time,mEndTimeInMili.time))
+
+            return true
+        }
+
 
         return super.onOptionsItemSelected(item)
     }
@@ -643,6 +670,156 @@ class MainActivity : AppCompatActivity() {
                 Log.i("-------------","-------------------")
 
               //  printDataHistory(dataReadResponse)
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "There was a problem reading the data.", e)
+            }
+    }
+
+
+    private fun getStepsTimeInterval(objectdaysTimeInMiliSecond: GetDateDetailsStartEndTime.DateStartEnd): Task<DataReadResponse> {
+        // Begin by creating the query.
+        val readRequest =  GetDataByTime().queryFitnessDataStepsTimeInterval(dateFormat,objectdaysTimeInMiliSecond.mStartTimeInMili,objectdaysTimeInMiliSecond.mEndTimeInMili)
+
+        // Invoke the History API to fetch the data with the query
+        return Fitness.getHistoryClient(this, getGoogleAccount())
+            .readData(readRequest)
+            .addOnSuccessListener { dataReadResponse ->
+                // For the sake of the sample, we'll print the data so we can see what we just
+                // added. In general, logging fitness information should be avoided for privacy
+                // reasons.
+                Log.i(objectdaysTimeInMiliSecond.mStartDate,"---"+objectdaysTimeInMiliSecond.mStartDate+"---")
+                if (dataReadResponse.buckets.isNotEmpty()) {
+                    Log.i(TAG, "Number of returned buckets of DataSets is: " + dataReadResponse.buckets.size)
+                    for (bucket in dataReadResponse.buckets) {
+                        bucket.dataSets.forEach { dumpDataSet(it) }
+                    }
+                } else if (dataReadResponse.dataSets.isNotEmpty()) {
+                    Log.i(TAG, "Number of returned DataSets is: " + dataReadResponse.dataSets.size)
+                    dataReadResponse.dataSets.forEach { dumpDataSet(it) }
+                }
+                Log.i("-------------","-------------------")
+
+                //  printDataHistory(dataReadResponse)
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "There was a problem reading the data.", e)
+            }
+    }
+
+
+
+    private fun getCalorieInTimeInterval(objectdaysTimeInMiliSecond: GetDateDetailsStartEndTime.DateStartEnd): Task<DataReadResponse> {
+        // Begin by creating the query.
+        val readRequest =  GetDataByTime().queryFitnessDataCalorieTimeInterval(dateFormat,objectdaysTimeInMiliSecond.mStartTimeInMili,objectdaysTimeInMiliSecond.mEndTimeInMili)
+
+        // Invoke the History API to fetch the data with the query
+        return Fitness.getHistoryClient(this, getGoogleAccount())
+            .readData(readRequest)
+            .addOnSuccessListener { dataReadResponse ->
+                // For the sake of the sample, we'll print the data so we can see what we just
+                // added. In general, logging fitness information should be avoided for privacy
+                // reasons.
+                Log.i(objectdaysTimeInMiliSecond.mStartDate,"---"+objectdaysTimeInMiliSecond.mStartDate+"---")
+                if (dataReadResponse.buckets.isNotEmpty()) {
+                    Log.i(TAG, "Number of returned buckets of DataSets is: " + dataReadResponse.buckets.size)
+                    for (bucket in dataReadResponse.buckets) {
+                        bucket.dataSets.forEach { dumpDataSet(it) }
+                    }
+                } else if (dataReadResponse.dataSets.isNotEmpty()) {
+                    Log.i(TAG, "Number of returned DataSets is: " + dataReadResponse.dataSets.size)
+                    dataReadResponse.dataSets.forEach { dumpDataSet(it) }
+                }
+                Log.i("-------------","-------------------")
+
+                //  printDataHistory(dataReadResponse)
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "There was a problem reading the data.", e)
+            }
+    }
+    private fun getDistanceimeInterval(objectdaysTimeInMiliSecond: GetDateDetailsStartEndTime.DateStartEnd): Task<DataReadResponse> {
+        // Begin by creating the query.
+        val readRequest =  GetDataByTime().queryFitnessDataDistanceTimeInterval(dateFormat,objectdaysTimeInMiliSecond.mStartTimeInMili,objectdaysTimeInMiliSecond.mEndTimeInMili)
+
+        // Invoke the History API to fetch the data with the query
+        return Fitness.getHistoryClient(this, getGoogleAccount())
+            .readData(readRequest)
+            .addOnSuccessListener { dataReadResponse ->
+                // For the sake of the sample, we'll print the data so we can see what we just
+                // added. In general, logging fitness information should be avoided for privacy
+                // reasons.
+                Log.i(objectdaysTimeInMiliSecond.mStartDate,"---"+objectdaysTimeInMiliSecond.mStartDate+"---")
+                if (dataReadResponse.buckets.isNotEmpty()) {
+                    Log.i(TAG, "Number of returned buckets of DataSets is: " + dataReadResponse.buckets.size)
+                    for (bucket in dataReadResponse.buckets) {
+                        bucket.dataSets.forEach { dumpDataSet(it) }
+                    }
+                } else if (dataReadResponse.dataSets.isNotEmpty()) {
+                    Log.i(TAG, "Number of returned DataSets is: " + dataReadResponse.dataSets.size)
+                    dataReadResponse.dataSets.forEach { dumpDataSet(it) }
+                }
+                Log.i("-------------","-------------------")
+
+                //  printDataHistory(dataReadResponse)
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "There was a problem reading the data.", e)
+            }
+    }
+    private fun getHeartPointimeInterval(objectdaysTimeInMiliSecond: GetDateDetailsStartEndTime.DateStartEnd): Task<DataReadResponse> {
+        // Begin by creating the query.
+        val readRequest =  GetDataByTime().queryFitnessDataHeartPointTimeInterval(dateFormat,objectdaysTimeInMiliSecond.mStartTimeInMili,objectdaysTimeInMiliSecond.mEndTimeInMili)
+
+        // Invoke the History API to fetch the data with the query
+        return Fitness.getHistoryClient(this, getGoogleAccount())
+            .readData(readRequest)
+            .addOnSuccessListener { dataReadResponse ->
+                // For the sake of the sample, we'll print the data so we can see what we just
+                // added. In general, logging fitness information should be avoided for privacy
+                // reasons.
+                Log.i(objectdaysTimeInMiliSecond.mStartDate,"---"+objectdaysTimeInMiliSecond.mStartDate+"---")
+                if (dataReadResponse.buckets.isNotEmpty()) {
+                    Log.i(TAG, "Number of returned buckets of DataSets is: " + dataReadResponse.buckets.size)
+                    for (bucket in dataReadResponse.buckets) {
+                        bucket.dataSets.forEach { dumpDataSet(it) }
+                    }
+                } else if (dataReadResponse.dataSets.isNotEmpty()) {
+                    Log.i(TAG, "Number of returned DataSets is: " + dataReadResponse.dataSets.size)
+                    dataReadResponse.dataSets.forEach { dumpDataSet(it) }
+                }
+                Log.i("-------------","-------------------")
+
+                //  printDataHistory(dataReadResponse)
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "There was a problem reading the data.", e)
+            }
+    }
+    private fun getMoveMinuteInterval(objectdaysTimeInMiliSecond: GetDateDetailsStartEndTime.DateStartEnd): Task<DataReadResponse> {
+        // Begin by creating the query.
+        val readRequest =  GetDataByTime().queryFitnessMoveMinutetPointTimeInterval(dateFormat,objectdaysTimeInMiliSecond.mStartTimeInMili,objectdaysTimeInMiliSecond.mEndTimeInMili)
+
+        // Invoke the History API to fetch the data with the query
+        return Fitness.getHistoryClient(this, getGoogleAccount())
+            .readData(readRequest)
+            .addOnSuccessListener { dataReadResponse ->
+                // For the sake of the sample, we'll print the data so we can see what we just
+                // added. In general, logging fitness information should be avoided for privacy
+                // reasons.
+                Log.i(objectdaysTimeInMiliSecond.mStartDate,"---"+objectdaysTimeInMiliSecond.mStartDate+"---")
+                if (dataReadResponse.buckets.isNotEmpty()) {
+                    Log.i(TAG, "Number of returned buckets of DataSets is: " + dataReadResponse.buckets.size)
+                    for (bucket in dataReadResponse.buckets) {
+                        bucket.dataSets.forEach { dumpDataSet(it) }
+                    }
+                } else if (dataReadResponse.dataSets.isNotEmpty()) {
+                    Log.i(TAG, "Number of returned DataSets is: " + dataReadResponse.dataSets.size)
+                    dataReadResponse.dataSets.forEach { dumpDataSet(it) }
+                }
+                Log.i("-------------","-------------------")
+
+                //  printDataHistory(dataReadResponse)
             }
             .addOnFailureListener { e ->
                 Log.e(TAG, "There was a problem reading the data.", e)

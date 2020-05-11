@@ -58,4 +58,9 @@ limitations under the License.
         android:orderInCategory="100"
         app:showAsAction="never" />
 
+    <item android:id="@+id/action_get_time_interval"
+        android:title="Time Interval"
+        android:orderInCategory="100"
+        app:showAsAction="never" />
+
 </menu>
