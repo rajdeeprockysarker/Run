@@ -1,13 +1,13 @@
 package com.raj.run.InsertValueIntoFitApi
 
 import android.content.Context
+import android.util.Log
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.fitness.Fitness
 import com.google.android.gms.fitness.FitnessOptions
 import com.google.android.gms.fitness.data.*
 import com.google.android.gms.fitness.data.Field.FIELD_VOLUME
 import com.google.android.gms.tasks.Task
-import com.raj.run.Log
 import com.raj.run.TAG
 import java.util.*
 import java.util.concurrent.TimeUnit

@@ -1,6 +1,7 @@
 package com.raj.run
 
 import android.text.format.DateUtils
+import android.util.Log
 import com.google.android.gms.fitness.data.DataType
 import com.google.android.gms.fitness.request.DataReadRequest
 import java.text.DateFormat
