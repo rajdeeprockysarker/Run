@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -56,9 +57,6 @@ class MainActivity : AppCompatActivity() {
             .addDataType(DataType.TYPE_WEIGHT, FitnessOptions.ACCESS_WRITE)
             .addDataType(DataType.TYPE_HYDRATION, FitnessOptions.ACCESS_WRITE)
             .addDataType(DataType.TYPE_NUTRITION, FitnessOptions.ACCESS_WRITE)
-
-
-
             .build()
 
     private val runningQOrLater =
@@ -77,10 +75,32 @@ class MainActivity : AppCompatActivity() {
             android.Manifest.permission.ACCESS_COARSE_LOCATION)
         ActivityCompat.requestPermissions(this, permissions,0)
 
-        initializeLogging()
+       // initializeLogging()
 
         checkPermissionsAndRun(FitActionRequestCode.SUBSCRIBE)
     }
+
+
+    /******** functions for login process begin ********/
+
+    /** Initializes a custom log class that outputs both to in-app targets and logcat.  */
+    /*  private fun initializeLogging() {
+          // Wraps Android's native log framework.
+          val logWrapper = LogWrapper()
+          // Using Log, front-end to the logging chain, emulates android.util.log method signatures.
+          Log.setLogNode(logWrapper)
+          // Filter strips out everything except the message text.
+          val msgFilter = MessageOnlyLogFilter()
+          logWrapper.next = msgFilter
+          // On screen logging via a customized TextView.
+          val logView = findViewById<View>(R.id.sample_logview) as LogView
+          TextViewCompat.setTextAppearance(logView, R.style.Log)
+          logView.setBackgroundColor(Color.WHITE)
+          msgFilter.next = logView
+          Log.i(TAG, "Ready")
+      }
+  */
+
 
     private fun checkPermissionsAndRun(fitActionRequestCode: FitActionRequestCode) {
         if (permissionApproved()) {
@@ -88,6 +108,17 @@ class MainActivity : AppCompatActivity() {
         } else {
             requestRuntimePermissions(fitActionRequestCode)
         }
+    }
+
+    private fun permissionApproved(): Boolean {
+        val approved = if (runningQOrLater) {
+            PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACTIVITY_RECOGNITION)
+        } else {
+            true
+        }
+        return approved
     }
 
     /**
@@ -102,9 +133,47 @@ class MainActivity : AppCompatActivity() {
         } else {
             requestCode.let {
                 GoogleSignIn.requestPermissions(
-                        this,
-                        requestCode.ordinal,
-                        getGoogleAccount(), fitnessOptions)
+                    this,
+                    requestCode.ordinal,
+                    getGoogleAccount(), fitnessOptions)
+            }
+        }
+    }
+
+    private fun oAuthPermissionsApproved() = GoogleSignIn.hasPermissions(getGoogleAccount(), fitnessOptions)
+
+
+    /**
+     * Gets a Google account for use in creating the Fitness client. This is achieved by either
+     * using the last signed-in account, or if necessary, prompting the user to sign in.
+     * `getAccountForExtension` is recommended over `getLastSignedInAccount` as the latter can
+     * return `null` if there has been no sign in before.
+     */
+    private fun getGoogleAccount() = GoogleSignIn.getAccountForExtension(this, fitnessOptions)
+
+
+    private fun requestRuntimePermissions(requestCode: FitActionRequestCode) {
+        val shouldProvideRationale =
+            ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACTIVITY_RECOGNITION)
+
+        // Provide an additional rationale to the user. This would happen if the user denied the
+        // request previously, but didn't check the "Don't ask again" checkbox.
+        requestCode.let {
+            if (shouldProvideRationale) {
+                Log.i(TAG, "Displaying permission rationale to provide additional context.")
+
+                ActivityCompat.requestPermissions(this,
+                    arrayOf(Manifest.permission.ACTIVITY_RECOGNITION),
+                    requestCode.ordinal)
+
+            } else {
+                Log.i(TAG, "Requesting permission")
+                // Request permission. It's possible this can be auto answered if device policy
+                // sets the permission in a given state or the user denied the permission
+                // previously and checked "Never ask again".
+                ActivityCompat.requestPermissions(this,
+                    arrayOf(Manifest.permission.ACTIVITY_RECOGNITION),
+                    requestCode.ordinal)
             }
         }
     }
@@ -148,15 +217,6 @@ class MainActivity : AppCompatActivity() {
         Log.e(TAG, message)
     }
 
-    private fun oAuthPermissionsApproved() = GoogleSignIn.hasPermissions(getGoogleAccount(), fitnessOptions)
-
-    /**
-     * Gets a Google account for use in creating the Fitness client. This is achieved by either
-     * using the last signed-in account, or if necessary, prompting the user to sign in.
-     * `getAccountForExtension` is recommended over `getLastSignedInAccount` as the latter can
-     * return `null` if there has been no sign in before.
-     */
-    private fun getGoogleAccount() = GoogleSignIn.getAccountForExtension(this, fitnessOptions)
 
     /** Records step data by requesting a subscription to background step data.  */
     private fun subscribe() {
@@ -318,6 +378,50 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>,
+                                            grantResults: IntArray) {
+        when {
+            grantResults.isEmpty() -> {
+                // If user interaction was interrupted, the permission request
+                // is cancelled and you receive empty arrays.
+                Log.i(TAG, "User interaction was cancelled.")
+            }
+            grantResults[0] == PackageManager.PERMISSION_GRANTED -> {
+                // Permission was granted.
+                val fitActionRequestCode = FitActionRequestCode.values()[requestCode]
+                fitActionRequestCode.let {
+                    fitSignIn(fitActionRequestCode)
+                }
+            }
+            else -> {
+                // Permission denied.
+
+                // In this Activity we've chosen to notify the user that they
+                // have rejected a core permission for the app since it makes the Activity useless.
+                // We're communicating this message in a Snackbar since this is a sample app, but
+                // core permissions would typically be best requested during a welcome-screen flow.
+
+                // Additionally, it is important to remember that a permission might have been
+                // rejected without asking the user for permission (device policy or "Never ask
+                // again" prompts). Therefore, a user interface affordance is typically implemented
+                // when permissions are denied. Otherwise, your app could appear unresponsive to
+                // touches or interactions which have required permissions.
+
+                val intent = Intent()
+                intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                val uri = Uri.fromParts("package",
+                    BuildConfig.APPLICATION_ID, null)
+                intent.data = uri
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                startActivity(intent)
+
+            }
+        }
+    }
+
+    /******** functions for login process Ends ********/
+
+    /******** functions for menu setup begin ********/
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the main; this adds items to the action bar if it is present.
         menuInflater.inflate(R.menu.main, menu)
@@ -418,100 +522,7 @@ class MainActivity : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
-    /** Initializes a custom log class that outputs both to in-app targets and logcat.  */
-    private fun initializeLogging() {
-        // Wraps Android's native log framework.
-        val logWrapper = LogWrapper()
-        // Using Log, front-end to the logging chain, emulates android.util.log method signatures.
-        Log.setLogNode(logWrapper)
-        // Filter strips out everything except the message text.
-        val msgFilter = MessageOnlyLogFilter()
-        logWrapper.next = msgFilter
-        // On screen logging via a customized TextView.
-        val logView = findViewById<View>(R.id.sample_logview) as LogView
-        TextViewCompat.setTextAppearance(logView, R.style.Log)
-        logView.setBackgroundColor(Color.WHITE)
-        msgFilter.next = logView
-        Log.i(TAG, "Ready")
-    }
-
-    private fun permissionApproved(): Boolean {
-        val approved = if (runningQOrLater) {
-            PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACTIVITY_RECOGNITION)
-        } else {
-            true
-        }
-        return approved
-    }
-
-    private fun requestRuntimePermissions(requestCode: FitActionRequestCode) {
-        val shouldProvideRationale =
-                ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACTIVITY_RECOGNITION)
-
-        // Provide an additional rationale to the user. This would happen if the user denied the
-        // request previously, but didn't check the "Don't ask again" checkbox.
-        requestCode.let {
-            if (shouldProvideRationale) {
-                Log.i(TAG, "Displaying permission rationale to provide additional context.")
-
-                            ActivityCompat.requestPermissions(this,
-                                    arrayOf(Manifest.permission.ACTIVITY_RECOGNITION),
-                                    requestCode.ordinal)
-
-            } else {
-                Log.i(TAG, "Requesting permission")
-                // Request permission. It's possible this can be auto answered if device policy
-                // sets the permission in a given state or the user denied the permission
-                // previously and checked "Never ask again".
-                ActivityCompat.requestPermissions(this,
-                        arrayOf(Manifest.permission.ACTIVITY_RECOGNITION),
-                        requestCode.ordinal)
-            }
-        }
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>,
-                                            grantResults: IntArray) {
-        when {
-            grantResults.isEmpty() -> {
-                // If user interaction was interrupted, the permission request
-                // is cancelled and you receive empty arrays.
-                Log.i(TAG, "User interaction was cancelled.")
-            }
-            grantResults[0] == PackageManager.PERMISSION_GRANTED -> {
-                // Permission was granted.
-                val fitActionRequestCode = FitActionRequestCode.values()[requestCode]
-                fitActionRequestCode.let {
-                    fitSignIn(fitActionRequestCode)
-                }
-            }
-            else -> {
-                // Permission denied.
-
-                // In this Activity we've chosen to notify the user that they
-                // have rejected a core permission for the app since it makes the Activity useless.
-                // We're communicating this message in a Snackbar since this is a sample app, but
-                // core permissions would typically be best requested during a welcome-screen flow.
-
-                // Additionally, it is important to remember that a permission might have been
-                // rejected without asking the user for permission (device policy or "Never ask
-                // again" prompts). Therefore, a user interface affordance is typically implemented
-                // when permissions are denied. Otherwise, your app could appear unresponsive to
-                // touches or interactions which have required permissions.
-
-                            val intent = Intent()
-                            intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                            val uri = Uri.fromParts("package",
-                                    BuildConfig.APPLICATION_ID, null)
-                            intent.data = uri
-                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                            startActivity(intent)
-
-            }
-        }
-    }
+    /******** functions for menu setup Ends ********/
 
 
 
